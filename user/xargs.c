@@ -2,49 +2,72 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-char buf[512];
-void core(int argc, char *argv[])
+
+void core(char* allArgs[],int num)
 {
-    const int num=argc+1;
-    char* allArgs[num];
-    //char buf[512];
-    for(int i=1;i<argc;i++)
-        allArgs[i-1]=argv[i];
-    allArgs[num-1]=0;
-    if(fork()==0)
-    {
-        gets(buf,512);
-        buf[strlen(buf)-1]='\0';
-        allArgs[num-2]=buf;
-        exec(argv[1],allArgs);
+   char newBuf[50];
+   int p[2];
+   pipe(p);
+   if(fork()==0)
+   {
+        gets(newBuf,50);
+        int i=0;
+        if(strlen(newBuf) ==0)
+        {
+            i=-1;
+            write(p[1],&i,sizeof(int));
+            close(p[1]);
+            return ;
+        } 
+        newBuf[strlen(newBuf)-1]='\0';
+        //printf("core child: buf is%s\n",newBuf);
+        allArgs[num-1]=newBuf;
+        write(p[1],&i,sizeof(int));
+        close(p[1]);
+        exec(allArgs[0],allArgs);
         printf("exec error\n");
-    }
-    else
-    {
+   }
+   else
+   {
         wait(0);
-        core(argc,argv);
-    }
+        //printf("core pa\n");
+        int i=0;
+        read(p[0],&i,sizeof(int));
+        close(p[0]);
+        //printf("core before return\n");
+        if(i==-1)
+        {
+          //  printf("i=-1\n");
+            return ;
+        }
+        //printf("core after return\n");
+        core(allArgs,num);
+   }
 }
 //读取命令和参数
 int main(int argc, char *argv[])
 {
     const int num=argc;
     char* allArgs[num];
+    char buf[50];
     for(int i=1;i<argc;i++)
         allArgs[i-1]=argv[i];
-    //allArgs[num-1]=0;
     if(fork()==0)
     {
-        gets(buf,512);
+        gets(buf,50);
+        if(buf==0) return 0; 
+        buf[strlen(buf)-1]='\0';
+        //printf("main child: buf is%s\n",buf);
         allArgs[num-1]=buf;
-        exec(argv[1],allArgs);
+        exec(allArgs[0],allArgs);
         printf("exec error\n");
     }
     else
     {
         wait(0);
-        core(argc,argv);
+        //printf("main pa\n");
+        core(allArgs,num);
+        exit(0);
     }
     return 0;
-    
 }
