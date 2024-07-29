@@ -67,7 +67,8 @@ int main(int argc, char *argv[])
         printf("you should input file name\n");
         return 0;
     }
-    char* name=argv[1];
-    find(name,".");
+    char* name=argv[2];
+    char* beginPath=argv[1];
+    find(name,beginPath);
     return 0;
 }
